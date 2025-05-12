@@ -1,0 +1,165 @@
+// ✅ Example 1: Correct Class Declaration
+@ Type Person {
+    Ity age = 25;
+}
+$
+
+// ✅ Example 2: Correct Inheritance
+@ Type Student DerivedFrom Person {
+    Logical hasGraduated() {
+        Respondwith True;
+    }
+}
+$
+
+// ✅ Example 3: Correct Variable and Method
+@ Type BankAccount {
+    Ifity balance = 1000.5;
+    Logical deposit() {
+        Respondwith True;
+    }
+}
+$
+
+// ✅ Example 4: Condition Statement
+@ Type Weather {
+    Logical checkWeather() {
+        TrueFor (rainy == True) {
+            Respondwith True;
+        }
+        Else {
+            Respondwith False;
+        }
+    }
+}
+$
+
+// ✅ Example 5: Loop Statement
+@ Type Counter {
+    Logical countUp() {
+        However (i < 10) {
+            i = i + 1;
+        }
+    }
+}
+$
+
+// ✅ Example 6: Switch Statement
+@ Type TrafficLight {
+    Logical colorAction() {
+        Scan (color) {
+            Conditionof "Red": Respondwith False;
+            Conditionof "Green": Respondwith True;
+            Conditionof "Yellow": Respondwith False;
+        }
+    }
+}
+$
+
+// ✅ Example 7: Struct Example
+@ Srap Address {
+    CwqSequence street;
+    Ity zipCode;
+}
+$
+
+// ✅ Example 8: Inclusion
+Require LibraryX;
+Require SystemY;
+
+// ✅ Example 9: Complex Inheritance
+@ Type Manager DerivedFrom Employee DerivedFrom Person {
+    Logical isBusy() {
+        Respondwith True;
+    }
+}
+$
+
+// ✅ Example 10: Break Statement inside Loop
+@ Type LoopBreaker {
+    Logical loopTest() {
+        However (counter > 0) {
+            Endthis;
+        }
+    }
+}
+$
+
+// 🛑 Example 11: Missing Semicolon (Error)
+@ Type ErrorExample1 {
+    Ity number = 5
+}
+$
+
+// 🛑 Example 12: Missing Curly Brace (Error)
+@ Type ErrorExample2 {
+    Logical test()
+        Respondwith True;
+
+$
+
+// 🛑 Example 13: Unexpected Token (Error)
+@ Type ErrorExample3 {
+    Logical doSomething() {
+        SomethingWrong();
+    }
+}
+$
+
+// 🛑 Example 14: Missing End Symbol (Error)
+@ Type ErrorExample4 {
+    Logical validMethod() {
+        Respondwith True;
+    }
+}
+
+// 🛑 Example 15: Missing Start Symbol (Error)
+Type ErrorExample5 {
+    Logical work() {
+        Respondwith True;
+    }
+}
+$
+
+// ✅ Example 16: Complex Class with Method and Loop
+@ Type Machine {
+    Logical start() {
+        However (power < 100) {
+            power = power + 10;
+        }
+    }
+}
+$
+
+// ✅ Example 17: Constant and Arithmetic Operation
+@ Type Calculator {
+    Ity x = 10;
+    Ity y = 20;
+    Ity result = x + y;
+}
+$
+
+// ✅ Example 18: Nested Condition
+@ Type ComplexLogic {
+    Logical validate() {
+        TrueFor (x > 0) {
+            TrueFor (y > 0) {
+                Respondwith True;
+            }
+        }
+    }
+}
+$
+
+// ✅ Example 19: Empty Class
+@ Type EmptyClass {
+}
+$
+
+// ✅ Example 20: Multiple Variable Declarations
+@ Type MultiVar {
+    Ity a = 5;
+    Ity b = 10;
+    Ifity c = 2.5;
+}
+$

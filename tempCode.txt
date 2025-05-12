@@ -1,0 +1,16 @@
+@ Type Adder {
+Ity a, b, result;
+
+
+  Valueless addNumbers() {
+a = 5;
+
+b = 10;
+
+result = a + b;
+
+Respondwith result;
+
+  }
+}
+$
