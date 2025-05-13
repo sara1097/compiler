@@ -1,3 +1,4 @@
-@ Type A { Valueless f( )
-{ } 
-} $
+@ Type A {
+ Ity x
+ 
+ $

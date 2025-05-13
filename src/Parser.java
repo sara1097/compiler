@@ -257,7 +257,10 @@ public class Parser {
                 synchronize(";", "{", "}");
             }
         } else if (currentToken.getType().equals("Identifier")) {
-            funcCall();
+            // Handle unknown type case - give specific error
+            error("Unknown type '" + currentToken.getText() + "'");
+            synchronize(";", "{", "}");
+            //funcCall();
         } else {
             error("Invalid class member");
             synchronize(";", "{", "}");
@@ -406,7 +409,7 @@ public class Parser {
                 // Successfully parsed variable declaration
             } else {
                 error("Expected ; at end of variable declaration");
-                synchronize("{", "}", "Ity", "Sity", "Cwq", "CwqSequence", "Ifity", "Sifity", "Valueless", "Logical");
+                //synchronize("{", "}", "Ity", "Sity", "Cwq", "CwqSequence", "Ifity", "Sifity", "Valueless", "Logical");
             }
         } else {
             error("Expected type in variable declaration");
@@ -420,8 +423,14 @@ public class Parser {
 
         if (isType()) {
             variableDecl();
-           // variableDecls();
+            variableDecls();
         }
+        else if (currentToken != null &&
+                currentToken.getType().equals("Identifier")) {
+            // This catches `int`, `float`, etc. inside methods
+            error("Unknown type '" + currentToken.getText() + "'");
+            synchronize(";", "{", "}");
+            }
         // Otherwise it's epsilon (empty)
     }
 
@@ -692,13 +701,34 @@ public class Parser {
 
         if (matchText("When")) {
             if (matchText("(")) {
-                expression();
+                if (isExpressionStart()) {
+                    expression();
+                } else {
+                    error("Expected expression in When statement");
+                    synchronize(";", ")");
+                    return;
+                }
+
 
                 if (matchText(";")) {
-                    expression();
+                    if (isExpressionStart()) {
+                        expression();
+                    } else {
+                        error("Expected expression in When statement");
+                        synchronize(";", ")");
+                        return;
+                    }
+
 
                     if (matchText(";")) {
-                        expression();
+                        if (isExpressionStart()) {
+                            expression();
+                        } else {
+                            error("Expected expression in When statement");
+                            synchronize(";", ")");
+                            return;
+                        }
+
 
                         if (matchText(")")) {
                             block();
@@ -1013,9 +1043,11 @@ public class Parser {
                 // Successfully parsed parenthesized expression
             } else {
                 error("Expected ) at end of expression");
+                synchronize("+", "-", "*", "/", ")", ";");
             }
         } else {
             error("Expected identifier, number, string literal, or ( in factor");
+            synchronize("+", "-", "*", "/", ")", ";");
         }
     }
     // 41. Comment -> /< STR >/ | /* STR
@@ -1026,6 +1058,7 @@ public class Parser {
             consume();
         } else {
             error("Expected comment");
+            synchronize(";", "{", "}");
         }
     }
 
@@ -1042,15 +1075,19 @@ public class Parser {
                         // Successfully parsed require command
                     } else {
                         error("Expected ; after require command");
+                        synchronize(";", "{", "}");
                     }
                 } else {
                     error("Expected ) in require command");
+                    synchronize(";");
                 }
             } else {
                 error("Expected ( after Require");
+                synchronize("(", ";");
             }
         } else {
             error("Expected Require");
+            synchronize(";");
         }
     }
 
