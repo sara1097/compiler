@@ -390,7 +390,7 @@ public class Parser {
                 expression();
             }
             if (currentToken != null && matchText("[")) {
-                if (currentToken != null && currentToken.getType().equals("Identifier")) {
+                if (currentToken != null && (currentToken.getType().equals("Identifier") || currentToken.getType().equals("Constant"))) {
                     consume(); // ID
 
                     if (matchText("]")) {
@@ -409,7 +409,7 @@ public class Parser {
                 // Successfully parsed variable declaration
             } else {
                 error("Expected ; at end of variable declaration");
-                //synchronize("{", "}", "Ity", "Sity", "Cwq", "CwqSequence", "Ifity", "Sifity", "Valueless", "Logical");
+                synchronize("}", "Ity", "Sity", "Cwq", "CwqSequence", "Ifity", "Sifity", "Valueless", "Logical");
             }
         } else {
             error("Expected type in variable declaration");

@@ -1,4 +1,5 @@
-@ Type A {
- Ity x
- 
- $
+@ Type Data {
+  Ity number
+  Respondwith number
+}
+$
