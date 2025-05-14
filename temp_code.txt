@@ -1,4 +1,3 @@
-@ Type A {
- Ity x
- 
- $
+@code
+logical(){x=x+1}
+$
