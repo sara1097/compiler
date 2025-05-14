@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 @ Type Data {
   Ity number
   Respondwith number
 }
 $
+=======
+@code
+logical(){x=x+1}
+$
+>>>>>>> 70eca552ee8e2b6d5db8cf2d8fc19a8810448512
