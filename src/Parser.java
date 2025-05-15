@@ -335,7 +335,7 @@ public class Parser {
             synchronize(";", "{");
         }
     }
-
+    /*
     // 10. ParameterList -> ε | Parameters
     private void parameterList() {
         matchRule("ParameterList");
@@ -607,6 +607,151 @@ public class Parser {
             argumentSequence();
         }
         // Otherwise it's epsilon (empty)
+    }
+    */
+    private boolean isValidType() {
+        String t = currentToken.getType();
+        return t.equals("Integer") || t.equals("SInteger") || t.equals("Float") || t.equals("SFloat")
+                || t.equals("Character") || t.equals("String") || t.equals("Void") || t.equals("Boolean");
+    }
+
+    private void parameterList() {
+        if (currentToken.getText().equals(")")) {
+            matchRule("ParameterList -> ε");
+            return;
+        }
+        parameters();
+        matchRule("ParameterList -> Parameters");
+    }
+
+    private void parameters() {
+        parameter();
+        while (true) {
+            if (matchText(",")) {
+                parameter();
+            } else if (isValidType()) {
+                // هناك نوع جديد بدون فاصلة فاصلة → خطأ
+                error("Expected ',' between parameters");
+                parameter();  // حاول تجاوز الخطأ بقراءة البراميتر التالي
+            } else {
+                break;
+            }
+        }
+        matchRule("Parameters -> Parameter | Parameters , Parameter");
+    }
+
+    private void parameter() {
+        if (isValidType()) {
+            consume();
+            if (match("Identifier")) {
+                matchRule("Parameter -> Type ID");
+            } else error("Expected ID in parameter");
+        } else error("Expected Type in parameter");
+    }
+
+    private void variableDecl() {
+        if (isValidType()) {
+            consume();
+            idList();
+            if (matchText(";")) {
+                matchRule("VariableDecl -> Type IDList ;");
+            } else if (matchText("[")) {
+                if (match("Identifier") && matchText("]") && matchText(";")) {
+                    matchRule("VariableDecl -> Type IDList [ ID ] ;");
+                } else error("Invalid array declaration");
+            } else error("Expected ; or [ in variable declaration");
+        } else error("Expected Type in variable declaration");
+    }
+
+    private void variableDecls() {
+        while (isValidType()) {
+            variableDecl();
+        }
+        matchRule("VariableDecls -> VariableDecl VariableDecls | ε");
+    }
+
+    private void idList() {
+        if (match("Identifier")) {
+            while (matchText(",")) {
+                if (!match("Identifier")) error("Expected ID in IDList");
+            }
+            matchRule("IDList -> ID | IDList , ID");
+        } else error("Expected ID in IDList");
+    }
+
+    private void statements() {
+        while (isStatementStart()) {
+            statement();
+        }
+        matchRule("Statements -> Statement Statements | ε");
+    }
+
+    private boolean isStatementStart() {
+        String t = currentToken.getType();
+        return t.equals("Identifier") || t.equals("TrueFor") || t.equals("However") ||
+                t.equals("When") || t.equals("Respondwith") || t.equals("Endthis") ||
+                t.equals("Scan") || t.equals("Srap");
+    }
+
+    private void statement() {
+        if (currentToken.getType().equals("Identifier")) {
+            if (lookAhead().equals("=")) {
+                assignment();
+            } else if (lookAhead().equals("(")) {
+                funcCallStmt();
+            } else error("Invalid statement start");
+        } else error("Unsupported statement or syntax error");
+        matchRule("Statement -> Assignment | FuncCallStmt | ...");
+    }
+
+    private void assignment() {
+        if (match("Identifier") && matchText("=")) {
+            simpleExpression();
+            if (matchText(";")) {
+                matchRule("Assignment -> ID = Expression ;");
+            } else error("Expected ; after assignment");
+        } else error("Invalid assignment");
+    }
+
+    private void funcCall() {
+        if (match("Identifier") && matchText("(")) {
+            argumentList();
+            if (matchText(")")) {
+                matchRule("FuncCall -> ID ( ArgumentList ) ;");
+            } else error("Expected ) after arguments");
+        } else error("Invalid function call");
+    }
+
+    private void funcCallStmt() {
+        funcCall();
+        if (matchText(";")) {
+            matchRule("FuncCallStmt -> FuncCall ;");
+        } else error("Expected ; after function call statement");
+    }
+
+    private void argumentList() {
+        if (currentToken.getText().equals(")")) {
+            matchRule("ArgumentList -> ε");
+            return;
+        }
+        simpleExpression();
+        while (matchText(",")) {
+            simpleExpression();
+        }
+        matchRule("ArgumentList -> ArgumentSequence");
+    }
+
+    private void simpleExpression() {
+        if (match("Identifier") || match("Number")) {
+            return;
+        } else error("Invalid expression");
+    }
+
+    private String lookAhead() {
+        if (currentTokenIndex + 1 < tokens.size()) {
+            return tokens.get(currentTokenIndex + 1).getText();
+        }
+        return "";
     }
 
     private boolean isExpressionStart() {
