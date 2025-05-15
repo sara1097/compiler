@@ -1,5 +1,9 @@
-@ Type B {
-  Logical G(x) {
+@ Type Person {
+  Logical G() {
+    int frt = 5;
+    When (in counter < num) {
+      int reg3 = reg3 - 1;
+    }
   }
 }
 $

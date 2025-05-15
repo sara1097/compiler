@@ -611,9 +611,9 @@ public class Parser {
     */
 
     private boolean isValidType() {
-        String t = currentToken.getType();
-        return t.equals("Integer") || t.equals("SInteger") || t.equals("Float") || t.equals("SFloat")
-                || t.equals("Character") || t.equals("String") || t.equals("Void") || t.equals("Boolean");
+        String t = currentToken.getText();
+        return t.equals("Ity") || t.equals("Sity") || t.equals("Float") || t.equals("SFloat")
+                || t.equals("Character") || t.equals("String") || t.equals("Void") || t.equals("Logical");
     }
 
     private void parameterList() {
@@ -715,22 +715,59 @@ public class Parser {
     }
 
     private void statement() {
+        matchRule("Statement");
+
+        if (currentToken == null) return;
+
+        String text = currentToken.getText();
+
         if (currentToken.getType().equals("Identifier")) {
-            if (lookAhead().equals("=")) {
+            // Check next token to determine if it's an assignment or function call
+            int saveIndex = currentTokenIndex;
+            Token saveToken = currentToken;
+
+            consume(); // Skip ID
+            if (currentTokenIndex < tokens.size() &&
+                    currentToken != null &&
+                    currentToken.getText().equals("=")) {
+
+                // It's an assignment
+                currentTokenIndex = saveIndex;
+                currentToken = saveToken;
                 assignment();
-            } else if (lookAhead().equals("(")) {
+            } else if (currentTokenIndex < tokens.size() &&
+                    currentToken != null &&
+                    currentToken.getText().equals("(")) {
+
+                // It's a function call
+                currentTokenIndex = saveIndex;
+                currentToken = saveToken;
                 funcCallStmt();
             } else {
-                error("Invalid statement start");
-                synchronize(";", "}");
+                error("Expected = or ( after identifier in statement");
+                currentTokenIndex = saveIndex;
+                currentToken = saveToken;
+                synchronize(";");
             }
+        } else if (text.equals("TrueFor")) {
+            trueForStmt();
+        } else if (text.equals("However")) {
+            howeverStmt();
+        } else if (text.equals("When")) {
+            whenStmt();
+        } else if (text.equals("Respondwith")) {
+            respondwithStmt();
+        } else if (text.equals("Endthis")) {
+            endthisStmt();
+        } else if (text.equals("Scan")) {
+            scanStmt();
+        } else if (text.equals("Srap")) {
+            srapStmt();
         } else {
-            error("Unsupported statement or syntax error");
-            synchronize(";", "}");
+            error("Invalid statement");
+            synchronize(";", "{", "}");
         }
-        matchRule("Statement -> Assignment | FuncCallStmt | ...");
     }
-
     private void assignment() {
         if (match("Identifier") && matchText("=")) {
             simpleExpression();
