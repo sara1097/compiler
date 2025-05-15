@@ -1,7 +1,5 @@
-@ Type D {
-  Logical Z() {
-    Ity x;
-    x = 5
+@ Type B {
+  Logical G(x) {
   }
 }
 $

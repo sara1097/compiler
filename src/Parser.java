@@ -135,45 +135,51 @@ public class Parser {
 
     // 4. ClassDeclaration -> Type ID ClassBody | Type ID DerivedFrom ClassBody
     private void classDeclaration() {
-        if (isValidType()) {
-            consume();
-            if (match("Identifier")) {
-                if (matchText("DerivedFrom")) {
-                    if (match("Identifier")) {
-                        classBody();
-                        matchRule("ClassDeclaration -> Type ID DerivedFrom ClassBody");
-                        return;
+        matchRule("ClassDeclaration");
+
+        if (matchText("Type")) {
+            if (currentToken != null && currentToken.getType().equals("Identifier")) {
+                consume();
+
+                if (currentToken != null && matchText("DerivedFrom")) {
+                    if (currentToken != null && currentToken.getType().equals("Identifier")) {
+                        consume();
                     } else {
                         error("Expected identifier after DerivedFrom");
                         synchronize("{");
                     }
                 }
+
                 classBody();
-                matchRule("ClassDeclaration -> Type ID ClassBody");
             } else {
-                error("Expected class name identifier");
+                error("Expected identifier after Type");
                 synchronize("{");
             }
         } else {
             error("Expected Type in class declaration");
-            synchronize("{");
+            synchronize("{", "$", "#");
         }
     }
+
    //  5. ClassBody -> { ClassMembers }
-   private void classBody() {
-       if (matchText("{")) {
-           classMembers();
-           if (matchText("}")) {
-               matchRule("ClassBody -> { ClassMembers }");
-           } else {
-               error("Expected } at end of class body");
-               synchronize("}");
-           }
-       } else {
-           error("Expected { at start of class body");
-           synchronize("}");
-       }
-   }
+    private void classBody() {
+        matchRule("ClassBody");
+
+        if (matchText("{")) {
+            classMembers();
+
+            if (matchText("}")) {
+                // Successfully parsed class body
+            } else {
+                error("Expected } at end of class body");
+            }
+        } else {
+            error("Expected { at beginning of class body");
+            synchronize("}", "$", "#");
+        }
+    }
+
+
     // 6. ClassMembers -> ClassMember ClassMembers | ε
 //    private void classMembers() {
 //        matchRule("ClassMembers");
@@ -186,88 +192,147 @@ public class Parser {
 //        // If not, it's epsilon (do nothing)
 //    }
     private void classMembers() {
-        while (isClassMemberStart()) {
+        matchRule("ClassMembers");
+
+        // Check if current token could start a class member and we're not at closing brace
+        while (currentToken != null &&
+                !currentToken.getText().equals("}") &&
+                !checkEOF() &&
+        isClassMemberStart()) {
             classMember();
         }
-        matchRule("ClassMembers -> ClassMember ClassMembers | ε");
+        // Implicit ε case when we hit } or end of input
     }
+
     private boolean isClassMemberStart() {
-        return isValidType() || currentToken.getType().equals("Identifier") ||
-                currentToken.getType().equals("Require") ||
-                currentToken.getText().equals("/*") || currentToken.getText().equals("/<");
+        if (currentToken == null) return false;
+        String type = currentToken.getType();
+        String text = currentToken.getText();
+
+        return type.equals("Class") ||
+                type.equals("Integer") ||
+                type.equals("SInteger") ||
+                type.equals("Character") ||
+                type.equals("String") ||
+                type.equals("Float") ||
+                type.equals("SFloat") ||
+                type.equals("Void") ||
+                type.equals("Boolean") ||
+                type.equals("Comment") ||
+                text.equals("Require") ||
+                (type.equals("Identifier") && !text.equals("}"));
     }
+
     // 7. ClassMember -> VariableDecl | MethodDecl | FuncCall | Comment | RequireCommand
     private void classMember() {
-        if (isValidType()) {
-            if (lookAhead().equals("(")) {
-                methodDecl();
+        matchRule("ClassMember");
+
+        if (currentToken.getType().equals("Comment")) {
+            comment();
+        } else if (currentToken.getText().equals("Require")) {
+            requireCommand();
+        } else if (isType()) {
+            // Check next tokens to determine if it's a variable or method declaration
+            int saveIndex = currentTokenIndex;
+            Token saveToken = currentToken;
+
+            consume(); // Skip type
+            if (currentTokenIndex < tokens.size() && currentToken.getType().equals("Identifier")) {
+                consume(); // Skip ID
+                if (currentTokenIndex < tokens.size() && currentToken.getText().equals("(")) {
+                    // It's a method declaration
+                    currentTokenIndex = saveIndex;
+                    currentToken = saveToken;
+                    methodDecl();
+                } else {
+                    // It's a variable declaration
+                    currentTokenIndex = saveIndex;
+                    currentToken = saveToken;
+                    variableDecl();
+                }
             } else {
-                variableDecl();
-                matchRule("ClassMember -> VariableDecl");
+                error("Expected identifier after type");
+                currentTokenIndex = saveIndex;
+                currentToken = saveToken;
+                synchronize(";", "{", "}");
             }
         } else if (currentToken.getType().equals("Identifier")) {
-            funcCall();
-            if (matchText(";")) {
-                matchRule("ClassMember -> FuncCall");
-            } else {
-                error("Expected ; after function call");
-                synchronize(";", "}");
-            }
-        } else if (currentToken.getType().equals("Require")) {
-            matchRule("ClassMember -> RequireCommand");
-            consume();
-        } else if (currentToken.getText().equals("/*") || currentToken.getText().equals("/<")) {
-            matchRule("ClassMember -> Comment");
-            consume();
+            // Handle unknown type case - give specific error
+            error("Unknown type '" + currentToken.getText() + "'");
+            synchronize(";", "{", "}");
+            //funcCall();
         } else {
             error("Invalid class member");
-            synchronize(";", "}");
+            synchronize(";", "{", "}");
         }
+    }
+
+    private boolean isType() {
+        String type = currentToken.getType();
+        return type.equals("Integer") ||
+                type.equals("SInteger") ||
+                type.equals("Character") ||
+                type.equals("String") ||
+                type.equals("Float") ||
+                type.equals("SFloat") ||
+                type.equals("Void") ||
+                type.equals("Boolean");
     }
 
     // 8. MethodDecl -> FuncDecl ; | FuncDecl { VariableDecls Statements }
     private void methodDecl() {
+        matchRule("MethodDecl");
+
         funcDecl();
+
         if (matchText(";")) {
-            matchRule("MethodDecl -> FuncDecl ;");
+            // Method with just declaration
         } else if (matchText("{")) {
             variableDecls();
             statements();
+
             if (matchText("}")) {
-                matchRule("MethodDecl -> FuncDecl { VariableDecls Statements }");
+                // Successfully parsed method body
             } else {
                 error("Expected } at end of method body");
-                synchronize("}");
+                synchronize("}", ";");
             }
         } else {
             error("Expected ; or { after function declaration");
-            synchronize(";", "{", "}");
+            synchronize("{", ";", "}");
         }
     }
+
     // 9. FuncDecl -> Type ID ( ParameterList )
     private void funcDecl() {
-        if (isValidType()) {
-            consume();
-            if (match("Identifier")) {
+        matchRule("FuncDecl");
+
+        if (isType()) {
+            consume(); // Type
+
+            if (currentToken != null && currentToken.getType().equals("Identifier")) {
+                consume(); // ID
+
                 if (matchText("(")) {
                     parameterList();
+
                     if (matchText(")")) {
-                        matchRule("FuncDecl -> Type ID ( ParameterList )");
+                        // Successfully parsed function declaration
                     } else {
                         error("Expected ) at end of parameter list");
-                        synchronize("{", ";", ")");
+                        synchronize(";", "{");
                     }
                 } else {
                     error("Expected ( after function name");
-                    synchronize("(", "{", ";");
+                    synchronize(")", ";", "{");
                 }
             } else {
-                error("Expected function name identifier");
-                synchronize("(", "{", ";");
+                error("Expected identifier for function name");
+                synchronize("(", ";", "{");
             }
         } else {
-            error("Expected Type in function declaration");
-            synchronize("(", "{", ";");
+            error("Expected type for function declaration");
+            synchronize(";", "{");
         }
     }
     /*
@@ -544,6 +609,7 @@ public class Parser {
         // Otherwise it's epsilon (empty)
     }
     */
+
     private boolean isValidType() {
         String t = currentToken.getType();
         return t.equals("Integer") || t.equals("SInteger") || t.equals("Float") || t.equals("SFloat")
@@ -565,9 +631,8 @@ public class Parser {
             if (matchText(",")) {
                 parameter();
             } else if (isValidType()) {
-                // هناك نوع جديد بدون فاصلة فاصلة → خطأ
                 error("Expected ',' between parameters");
-                parameter();  // حاول تجاوز الخطأ بقراءة البراميتر التالي
+                parameter();
             } else {
                 break;
             }
@@ -580,8 +645,14 @@ public class Parser {
             consume();
             if (match("Identifier")) {
                 matchRule("Parameter -> Type ID");
-            } else error("Expected ID in parameter");
-        } else error("Expected Type in parameter");
+            } else {
+                error("Expected ID in parameter");
+                synchronize(",", ")");
+            }
+        } else {
+            error("Expected Type in parameter");
+            synchronize(",", ")");
+        }
     }
 
     private void variableDecl() {
@@ -593,9 +664,18 @@ public class Parser {
             } else if (matchText("[")) {
                 if (match("Identifier") && matchText("]") && matchText(";")) {
                     matchRule("VariableDecl -> Type IDList [ ID ] ;");
-                } else error("Invalid array declaration");
-            } else error("Expected ; or [ in variable declaration");
-        } else error("Expected Type in variable declaration");
+                } else {
+                    error("Invalid array declaration");
+                    synchronize(";", "}");
+                }
+            } else {
+                error("Expected ; or [ in variable declaration");
+                synchronize(";", "[", "}");
+            }
+        } else {
+            error("Expected Type in variable declaration");
+            synchronize(";", "}");
+        }
     }
 
     private void variableDecls() {
@@ -608,10 +688,16 @@ public class Parser {
     private void idList() {
         if (match("Identifier")) {
             while (matchText(",")) {
-                if (!match("Identifier")) error("Expected ID in IDList");
+                if (!match("Identifier")) {
+                    error("Expected ID in IDList");
+                    synchronize(",", ";");
+                }
             }
             matchRule("IDList -> ID | IDList , ID");
-        } else error("Expected ID in IDList");
+        } else {
+            error("Expected ID in IDList");
+            synchronize(",", ";");
+        }
     }
 
     private void statements() {
@@ -634,8 +720,14 @@ public class Parser {
                 assignment();
             } else if (lookAhead().equals("(")) {
                 funcCallStmt();
-            } else error("Invalid statement start");
-        } else error("Unsupported statement or syntax error");
+            } else {
+                error("Invalid statement start");
+                synchronize(";", "}");
+            }
+        } else {
+            error("Unsupported statement or syntax error");
+            synchronize(";", "}");
+        }
         matchRule("Statement -> Assignment | FuncCallStmt | ...");
     }
 
@@ -644,8 +736,14 @@ public class Parser {
             simpleExpression();
             if (matchText(";")) {
                 matchRule("Assignment -> ID = Expression ;");
-            } else error("Expected ; after assignment");
-        } else error("Invalid assignment");
+            } else {
+                error("Expected ; after assignment");
+                synchronize(";", "}");
+            }
+        } else {
+            error("Invalid assignment");
+            synchronize(";", "}");
+        }
     }
 
     private void funcCall() {
@@ -653,15 +751,24 @@ public class Parser {
             argumentList();
             if (matchText(")")) {
                 matchRule("FuncCall -> ID ( ArgumentList ) ;");
-            } else error("Expected ) after arguments");
-        } else error("Invalid function call");
+            } else {
+                error("Expected ) after arguments");
+                synchronize(")", ";");
+            }
+        } else {
+            error("Invalid function call");
+            synchronize(")", ";");
+        }
     }
 
     private void funcCallStmt() {
         funcCall();
         if (matchText(";")) {
             matchRule("FuncCallStmt -> FuncCall ;");
-        } else error("Expected ; after function call statement");
+        } else {
+            error("Expected ; after function call statement");
+            synchronize(";", "}");
+        }
     }
 
     private void argumentList() {
@@ -679,7 +786,10 @@ public class Parser {
     private void simpleExpression() {
         if (match("Identifier") || match("Number")) {
             return;
-        } else error("Invalid expression");
+        } else {
+            error("Invalid expression");
+            synchronize(",", ";", ")");
+        }
     }
 
     private String lookAhead() {
